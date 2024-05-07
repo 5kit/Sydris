@@ -42,7 +42,7 @@ class Tetris():
     def __init__(self, sp=10, code=random.randint(1,n)):
         self.speed = max(sp,0)
         self.code = code
-        self.pos = [5,0]
+        self.pos = [4,-1]
         self.rotation = 0
         self.graceTime = 1
     
@@ -126,14 +126,14 @@ class Game():
         clr = 0
         for y in range(20):
             f = True
-            for j in range(10):
-                if self.board[y][j] == 0:
+            for j in self.board[y]:
+                if j == 0:
                     f = False
             if f == True:
-                if self.board[y] in [[j for _ in range(10)] for j in range(1,8)]:
-                    clr += 1
-                    self.board.pop(y)
-                    self.board.insert(0,[0 for _ in range(10)])
+                #if self.board[y] in [[j for _ in range(10)] for j in range(1,8)]:
+                clr += 1
+                self.board.pop(y)
+                self.board.insert(0,[0 for _ in range(10)])
         pnt = 0
         pnt = 40 if clr == 1 else pnt
         pnt = 100 if clr == 2 else pnt
@@ -148,8 +148,11 @@ class Game():
             self.lvl += 1
             self.active.speed -= 1
             
-        if 1 in self.board[0]:
-            self.play = False
+        for k in self.board[0]:
+            if k in [l for l in range(1,8)]:
+                self.play = False
+                if self.points > highScore:
+                    highScore = self.points
         
     def forecast(self, dx,dy, r=0):
         blk = copy.deepcopy(self.active)
@@ -177,82 +180,124 @@ screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
 pygame.display.set_caption("Sydris")
 
 game = Game()
+highScore = 0
+game.play = False
 st, et = 0, 0
 tk = 0
 rate = 20
 
 font = pygame.font.Font('freesansbold.ttf', 32)
+btn = pygame.Rect(200, 450, 200, 100)
 trmno = [' - ', ' | ', ' []', ' T ', '__|', '|__', ',|`', ',|`']
 
 running = True
 while running:
-    st = time.time()
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            game.play = False
-            running = False
-        k = pygame.key.get_pressed()
-        if k[pygame.K_DOWN] or k[pygame.K_c]:
-            tk = game.active.speed
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT:
-                if game.forecast(-1,0):
-                    game.active.pos[0] -= 1
-            if event.key == pygame.K_RIGHT:
-                if game.forecast(1,0):
-                    game.active.pos[0] += 1
-            if event.key == pygame.K_UP or event.key == pygame.K_z:
-                game.switch()
-            if event.key == pygame.K_s:
-                f = True
-                for Dy in [0,-1,1]:
-                    for Dx in [0,-1,1]:
-                        if game.forecast(Dx,Dy,1) and f:
-                            game.active.rotation = (game.active.rotation+1)%4
-                            game.active.pos[0] += Dx
-                            game.active.pos[0] += Dy
-                            f = False
-            if event.key == pygame.K_d:
-                f = True
-                for Dy in [0,-1,1]:
-                    for Dx in [0,-1,1]:
-                        if game.forecast(Dx,Dy,-1) and f:
-                            game.active.rotation -= 1
-                            game.active.rotation += 4 if game.active.rotation < 0 else 0
-                            game.active.pos[0] += Dx
-                            game.active.pos[0] += Dy
-                            f = False
-
-    screen.fill((70,70,70))
-    
-    game.update(tk)
-    game.draw(screen)
-    
-    pygame.draw.rect(screen, (100,100,100), pygame.Rect(150, 20, 150, 50), 0,15)
-    pygame.draw.rect(screen, (100,100,100), pygame.Rect(400, 100, 100, 100), 0,15)
-    pygame.draw.rect(screen, (100,100,100), pygame.Rect(400, 230, 100, 400), 0,15)
-    
-    t1 = font.render('Score: ', True, (255,255,255))
-    screen.blit(t1, (20, 30))
-    t2 = font.render(str(int(game.points)), True, (255,255,255))
-    screen.blit(t2, (170, 30))
-    t5 = font.render('level: ' + str(game.lvl), True, (255,255,255))
-    screen.blit(t5, (400, 30))
-    t3 = font.render(trmno[game.store], True, (255,255,255))
-    screen.blit(t3, (430, 130))
-    t4 = font.render(trmno[game.next[3]], True, (255,255,255))
-    screen.blit(t4, (430, 280))
-    t4 = font.render(trmno[game.next[2]], True, (255,255,255))
-    screen.blit(t4, (430, 350))
-    t4 = font.render(trmno[game.next[1]], True, (255,255,255))
-    screen.blit(t4, (430, 420))
-    t4 = font.render(trmno[game.next[0]], True, (255,255,255))
-    screen.blit(t4, (430, 490))
-    
-    pygame.display.flip()
-    et = time.time()
-    dt = et-st
-    tk += 1
-    time.sleep(max(1/rate - 1/rate*dt,0))
+    if game.play:
+        st = time.time()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                game.play = False
+                running = False
+            k = pygame.key.get_pressed()
+            if k[pygame.K_DOWN] or k[pygame.K_c]:
+                tk = game.active.speed
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    if game.forecast(-1,0):
+                        game.active.pos[0] -= 1
+                if event.key == pygame.K_RIGHT:
+                    if game.forecast(1,0):
+                        game.active.pos[0] += 1
+                if event.key == pygame.K_UP or event.key == pygame.K_z:
+                    game.switch()
+                if event.key == pygame.K_s:
+                    f = True
+                    for Dy in [0,-1,1]:
+                        for Dx in [0,-1,1]:
+                            if game.forecast(Dx,Dy,1) and f:
+                                game.active.rotation = (game.active.rotation+1)%4
+                                game.active.pos[0] += Dx
+                                game.active.pos[0] += Dy
+                                f = False
+                if event.key == pygame.K_d:
+                    f = True
+                    for Dy in [0,-1,1]:
+                        for Dx in [0,-1,1]:
+                            if game.forecast(Dx,Dy,-1) and f:
+                                game.active.rotation -= 1
+                                game.active.rotation += 4 if game.active.rotation < 0 else 0
+                                game.active.pos[0] += Dx
+                                game.active.pos[0] += Dy
+                                f = False
+                if event.key == pygame.K_q:
+                    ps = True
+                    while ps:
+                        for event in pygame.event.get():
+                            if event.type == pygame.QUIT:
+                                ps = False
+                                game.play = False
+                                running = False
+                            if pygame.key.get_pressed()[pygame.K_q]:
+                                ps = False
+        screen.fill((70,70,70))
+        
+        game.update(tk)
+        game.draw(screen)
+        
+        pygame.draw.rect(screen, (100,100,100), pygame.Rect(150, 20, 150, 50), 0,15)
+        pygame.draw.rect(screen, (100,100,100), pygame.Rect(400, 100, 100, 100), 0,15)
+        pygame.draw.rect(screen, (100,100,100), pygame.Rect(400, 230, 100, 400), 0,15)
+        
+        t1 = font.render('Score: ', True, (255,255,255))
+        screen.blit(t1, (20, 30))
+        t2 = font.render(str(int(game.points)), True, (255,255,255))
+        screen.blit(t2, (170, 30))
+        t5 = font.render('level: ' + str(game.lvl), True, (255,255,255))
+        screen.blit(t5, (400, 30))
+        t3 = font.render(trmno[game.store], True, (255,255,255))
+        screen.blit(t3, (430, 130))
+        t4 = font.render(trmno[game.next[3]], True, (255,255,255))
+        screen.blit(t4, (430, 280))
+        t4 = font.render(trmno[game.next[2]], True, (255,255,255))
+        screen.blit(t4, (430, 350))
+        t4 = font.render(trmno[game.next[1]], True, (255,255,255))
+        screen.blit(t4, (430, 420))
+        t4 = font.render(trmno[game.next[0]], True, (255,255,255))
+        screen.blit(t4, (430, 490))
+        
+        pygame.display.flip()
+        et = time.time()
+        dt = et-st
+        tk += 1
+        time.sleep(max(1/rate - 1/rate*dt,0))
+        
+    else:
+        screen.fill((70,70,70))
+            
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if btn.collidepoint(event.pos):
+                    game = Game()
+        
+        t0 = font.render('SYDtris', True, (255,255,255))
+        screen.blit(t0, (250, 235))
+        
+        if btn.collidepoint(pygame.mouse.get_pos()):
+            pygame.draw.rect(screen, (80,80,80), btn, 0,15)
+        else:
+            pygame.draw.rect(screen, (150,50,50), btn, 0,15)
+        t0 = font.render('Play', True, (255,255,255))
+        screen.blit(t0, (270, 485))
+        
+        pygame.draw.rect(screen, (100,100,100), pygame.Rect(180, 300, 250, 100), 0,15)
+        
+        t0 = font.render('highScore: ' + str(highScore), False, (255,255,255))
+        screen.blit(t0, (210, 315))
+        t0 = font.render('score: ' + str(game.points), False, (255,255,255))
+        screen.blit(t0, (210, 345))
+        
+        pygame.display.flip()
     
 pygame.quit()
