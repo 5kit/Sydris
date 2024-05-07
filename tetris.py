@@ -35,22 +35,29 @@ blocks = [
          [0,0,0]],
 ]
 
+n = 7
+
 class Tetris():        
-    def __init__(self, sp=10, code=random.randint(1,7)):
+    def __init__(self, sp=10, code=random.randint(1,n)):
         self.speed = max(sp,0)
         self.code = code
         self.pos = [5,0]
         self.rotation = 0
+        self.graceTime = 1
     
     def get_image(self):
+        while self.rotation < 0:
+            self.rotation += 4
+        self.rotation %= 4
+        
         positions = {}
         bk = blocks[self.code]
         for _ in range(self.rotation):
             bk = [[i[j] for i in bk[::-1]] for j in range(len(bk))]
         for dy in range(len(bk)):
             for dx in range(len(bk[0])):
-                adjX = self.pos[0] - dx
-                adjY = self.pos[1] - dy
+                adjX = self.pos[0] + dx
+                adjY = self.pos[1] + dy
                 positions[adjY*100 + adjX] = bk[dy][dx]
         return positions
 
@@ -59,9 +66,10 @@ class Game():
         self.lvl = lvl
         self.board = [[0 for _ in range(10)] for _ in range(20)]
         self.active = Tetris(10-lvl)
-        self.next = [random.randint(1,7) for _ in range(4)]
+        self.next = [random.randint(1,n) for _ in range(4)]
         self.store = 0
         self.points = 0
+        self.canSwitch = True
         self.play = True
         
     def draw(self, screen):
@@ -83,28 +91,34 @@ class Game():
         
     def update(self, tick):
         if tick % self.active.speed == 0 and self.play:
-            if self.forecast(0,-1):
+            if self.forecast(0,1):
                 self.active.pos[1] += 1
             else:
-                build = self.active.get_image()
-                for cords in build:
-                    if build[cords] == 1:
-                        x = cords % 100
-                        y = cords // 100
-                        self.board[y][x] = 1
-                self.active = Tetris(10-self.lvl, self.next.pop())
-                self.next.insert(0,random.randint(1,7))
+                if self.active.graceTime != 0:
+                    self.active.graceTime -= 1
+                else:
+                    build = self.active.get_image()
+                    for cords in build:
+                        if build[cords] == 1:
+                            x = cords % 100
+                            y = cords // 100
+                            self.board[y][x] = 1
+                    self.active = Tetris(10-self.lvl, self.next.pop())
+                    self.next.insert(0,random.randint(1,n))
+                    self.canSwitch = True
             self.clearRows()
     
     def switch(self):
-        temp = self.active.code
-        if self.store == 0:
-            self.active = Tetris(10-self.lvl, self.next.pop())
-            self.next.insert(0,random.randint(1,7))
-            self.store = temp
-        else:
-            self.active = Tetris(10-self.lvl, self.store)
-            self.store = temp
+        if self.canSwitch == True:
+            temp = self.active.code
+            if self.store == 0:
+                self.active = Tetris(10-self.lvl, self.next.pop())
+                self.next.insert(0,random.randint(1,n))
+                self.store = temp
+            else:
+                self.active = Tetris(10-self.lvl, self.store)
+                self.store = temp
+                self.canSwitch = False
     
     def clearRows(self):
         clr = 0
@@ -129,11 +143,12 @@ class Game():
         blk = copy.deepcopy(self.active)
         blk.pos[0] += dx
         blk.pos[1] += dy
+        blk.rotation += 4 if game.active.rotation < 0 else 0
         blk.rotation = (blk.rotation + r) % 4
         fork = blk.get_image()
         for key in fork:
             Fx = key%100
-            Fy = key//100 + 2
+            Fy = key//100
             if fork[key] == 1 and Fy >= 0:
                 if 0 <= Fx < 10 and Fy < 20:
                     if self.board[Fy][Fx] == 1:
@@ -155,36 +170,46 @@ tk = 0
 rate = 20
 
 font = pygame.font.Font('freesansbold.ttf', 32)
-trmno = ['- ', ' |', '[]', 'T ', '_|', '|_', ' <', ' >']
+trmno = [' - ', ' | ', ' []', ' T ', '__|', '|__', ',|`', ',|`']
 
 running = True
 while running:
     st = time.time()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            game.play = False
             running = False
         k = pygame.key.get_pressed()
         if k[pygame.K_DOWN] or k[pygame.K_c]:
             tk = game.active.speed
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
-                if game.forecast(-1,-2):
+                if game.forecast(-1,0):
                     game.active.pos[0] -= 1
             if event.key == pygame.K_RIGHT:
-                if game.forecast(1,-2):
+                if game.forecast(1,0):
                     game.active.pos[0] += 1
             if event.key == pygame.K_UP or event.key == pygame.K_z:
                 game.switch()
             if event.key == pygame.K_s:
-                for Dx in [0,-1,1]:
-                    if game.forecast(Dx,-2,1):
-                        game.active.rotation = (game.active.rotation+1)%4
-                        game.active.pos[0] += Dx
+                f = True
+                for Dy in [0,-1,1]:
+                    for Dx in [0,-1,1]:
+                        if game.forecast(Dx,Dy,1) and f:
+                            game.active.rotation = (game.active.rotation+1)%4
+                            game.active.pos[0] += Dx
+                            game.active.pos[0] += Dy
+                            f = False
             if event.key == pygame.K_d:
-                for Dx in [0,-1,1]:
-                    if game.forecast(Dx,-2,-1):
-                        game.active.rotation = (game.active.rotation-1)%4
-                        game.active.pos[0] += Dx
+                f = True
+                for Dy in [0,-1,1]:
+                    for Dx in [0,-1,1]:
+                        if game.forecast(Dx,Dy,-1) and f:
+                            game.active.rotation -= 1
+                            game.active.rotation += 4 if game.active.rotation < 0 else 0
+                            game.active.pos[0] += Dx
+                            game.active.pos[0] += Dy
+                            f = False
 
     screen.fill((70,70,70))
     
@@ -197,23 +222,17 @@ while running:
     
     t1 = font.render('Score: ', True, (255,255,255))
     screen.blit(t1, (20, 30))
-    
     t2 = font.render(str(int(game.points)), True, (255,255,255))
     screen.blit(t2, (170, 30))
-    
     t3 = font.render(trmno[game.store], True, (255,255,255))
     screen.blit(t3, (430, 130))
-    
-    t4 = font.render(trmno[game.next[0]], True, (255,255,255))
-    screen.blit(t4, (430, 280))
-    
-    t4 = font.render(trmno[game.next[1]], True, (255,255,255))
-    screen.blit(t4, (430, 350))
-    
-    t4 = font.render(trmno[game.next[2]], True, (255,255,255))
-    screen.blit(t4, (430, 420))
-    
     t4 = font.render(trmno[game.next[3]], True, (255,255,255))
+    screen.blit(t4, (430, 280))
+    t4 = font.render(trmno[game.next[2]], True, (255,255,255))
+    screen.blit(t4, (430, 350))
+    t4 = font.render(trmno[game.next[1]], True, (255,255,255))
+    screen.blit(t4, (430, 420))
+    t4 = font.render(trmno[game.next[0]], True, (255,255,255))
     screen.blit(t4, (430, 490))
     
     pygame.display.flip()
