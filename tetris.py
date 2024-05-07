@@ -36,6 +36,7 @@ blocks = [
 ]
 
 n = 7
+cl = [(40,40,40), (30, 255, 255), (255, 255, 30), (80, 30, 180), (255, 135, 30), (30, 150, 255), (255, 30, 37), (30, 255, 135)]
 
 class Tetris():        
     def __init__(self, sp=10, code=random.randint(1,n)):
@@ -69,6 +70,7 @@ class Game():
         self.next = [random.randint(1,n) for _ in range(4)]
         self.store = 0
         self.points = 0
+        self.clrT = 0
         self.canSwitch = True
         self.play = True
         
@@ -80,14 +82,14 @@ class Game():
             for y in range(20):
                 dispX = start[0] + x * (size+2)
                 dispY = start[1] + y * (size+2)
-                if self.board[y][x] == 0:
-                    pygame.draw.rect(screen, (40,40,40), pygame.Rect(dispX, dispY, size, size),0,5)
-                elif self.board[y][x] == 1:
-                    pygame.draw.rect(screen, (180,30,80), pygame.Rect(dispX, dispY, size, size),0,5)
+                if self.board[y][x] == 0 and y == 0:
+                    pygame.draw.rect(screen, (80,40,40), pygame.Rect(dispX, dispY, size, size),0,5)
+                else:
+                    pygame.draw.rect(screen, cl[self.board[y][x]], pygame.Rect(dispX, dispY, size, size),0,5)
                 
                 if y*100 + x in blk:
                     if blk[y*100 + x] == 1:
-                        pygame.draw.rect(screen, (80,30,180), pygame.Rect(dispX, dispY, size, size),5,5)
+                        pygame.draw.rect(screen, cl[self.active.code], pygame.Rect(dispX, dispY, size, size),5,5)
         
     def update(self, tick):
         if tick % self.active.speed == 0 and self.play:
@@ -102,7 +104,7 @@ class Game():
                         if build[cords] == 1:
                             x = cords % 100
                             y = cords // 100
-                            self.board[y][x] = 1
+                            self.board[y][x] = self.active.code
                     self.active = Tetris(10-self.lvl, self.next.pop())
                     self.next.insert(0,random.randint(1,n))
                     self.canSwitch = True
@@ -123,17 +125,27 @@ class Game():
     def clearRows(self):
         clr = 0
         for y in range(20):
-            if self.board[y] == [1 for _ in range(10)]:
-                clr += 1
-                self.board.pop(y)
-                self.board.insert(0,[0 for _ in range(10)])
-        if clr == 4:
-            clr += 1
-        self.points +=  clr * (1 + self.lvl * 0.2)  * 100
+            f = True
+            for j in range(10):
+                if self.board[y][j] == 0:
+                    f = False
+            if f == True:
+                if self.board[y] in [[j for _ in range(10)] for j in range(1,8)]:
+                    clr += 1
+                    self.board.pop(y)
+                    self.board.insert(0,[0 for _ in range(10)])
+        pnt = 0
+        pnt = 40 if clr == 1 else pnt
+        pnt = 100 if clr == 2 else pnt
+        pnt = 300 if clr == 3 else pnt
+        pnt = 1200 if clr == 4 else pnt
+        self.points +=  pnt * (self.lvl+1)
         
-        if self.points > 1000 * (self.lvl + 1):
+        self.clrT += clr
+        
+        if self.clrT // 10 > 0:
+            self.clrT %= 10
             self.lvl += 1
-            self.points -= 1000 * (self.lvl + 1)
             self.active.speed -= 1
             
         if 1 in self.board[0]:
@@ -151,7 +163,7 @@ class Game():
             Fy = key//100
             if fork[key] == 1 and Fy >= 0:
                 if 0 <= Fx < 10 and Fy < 20:
-                    if self.board[Fy][Fx] == 1:
+                    if self.board[Fy][Fx] in [1,2,3,4,5,6,7]:
                         return False
                 else:
                     return False
@@ -224,6 +236,8 @@ while running:
     screen.blit(t1, (20, 30))
     t2 = font.render(str(int(game.points)), True, (255,255,255))
     screen.blit(t2, (170, 30))
+    t5 = font.render('level: ' + str(game.lvl), True, (255,255,255))
+    screen.blit(t5, (400, 30))
     t3 = font.render(trmno[game.store], True, (255,255,255))
     screen.blit(t3, (430, 130))
     t4 = font.render(trmno[game.next[3]], True, (255,255,255))
