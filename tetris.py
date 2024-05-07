@@ -14,29 +14,29 @@ blocks = [
         [[1,1],
          [1,1]],
             
-        [[1,1,1],
+        [[0,0,0],
          [0,1,0],
-         [0,0,0]],
+         [1,1,1]],
 
-        [[1,1,1],
-         [1,0,0],
-         [0,0,0]],
-
-        [[1,1,1],
+        [[0,0,0],
          [0,0,1],
-         [0,0,0]],
+         [1,1,1]],
+
+        [[0,0,0],
+         [1,0,0],
+         [1,1,1]],
             
-        [[1,1,0],
-         [0,1,1],
-         [0,0,0]],
-            
-        [[0,1,1],
+        [[0,0,0],
          [1,1,0],
-         [0,0,0]],
+         [0,1,1]],
+            
+        [[0,0,0],
+         [0,1,1],
+         [1,1,0]],
 ]
 
 n = 7
-cl = [(40,40,40), (30, 255, 255), (255, 255, 30), (80, 30, 180), (255, 135, 30), (30, 150, 255), (255, 30, 37), (30, 255, 135)]
+cl = [(40,40,40), (30, 255, 255), (255, 255, 30), (80, 30, 180), (255, 135, 30), (30, 150, 255), (255, 30, 30), (30, 255, 135)]
 
 class Tetris():        
     def __init__(self, sp=10, code=random.randint(1,n)):
@@ -109,7 +109,7 @@ class Game():
                     self.next.insert(0,random.randint(1,n))
                     self.canSwitch = True
             self.clearRows()
-    
+        
     def switch(self):
         if self.canSwitch == True:
             temp = self.active.code
@@ -188,7 +188,8 @@ rate = 20
 
 font = pygame.font.Font('freesansbold.ttf', 32)
 btn = pygame.Rect(200, 450, 200, 100)
-trmno = [' - ', ' | ', ' []', ' T ', '__|', '|__', ',|`', ',|`']
+trmno = [pygame.image.load('src\\0.png'), pygame.image.load('src\\1.png'), pygame.image.load('src\\2.png'), pygame.image.load('src\\3.png'), pygame.image.load('src\\4.png'), pygame.image.load('src\\5.png'), pygame.image.load('src\\6.png'), pygame.image.load('src\\7.png')]
+trmno = [pygame.transform.scale(t,(80,80)) for t in trmno]
 
 running = True
 while running:
@@ -254,16 +255,11 @@ while running:
         screen.blit(t2, (170, 30))
         t5 = font.render('level: ' + str(game.lvl), True, (255,255,255))
         screen.blit(t5, (400, 30))
-        t3 = font.render(trmno[game.store], True, (255,255,255))
-        screen.blit(t3, (430, 130))
-        t4 = font.render(trmno[game.next[3]], True, (255,255,255))
-        screen.blit(t4, (430, 280))
-        t4 = font.render(trmno[game.next[2]], True, (255,255,255))
-        screen.blit(t4, (430, 350))
-        t4 = font.render(trmno[game.next[1]], True, (255,255,255))
-        screen.blit(t4, (430, 420))
-        t4 = font.render(trmno[game.next[0]], True, (255,255,255))
-        screen.blit(t4, (430, 490))
+        screen.blit(trmno[game.store], (420, 110))
+        screen.blit(trmno[game.next[3]], (420, 250))
+        screen.blit(trmno[game.next[2]], (420, 330))
+        screen.blit(trmno[game.next[1]], (420, 410))
+        screen.blit(trmno[game.next[0]], (420, 490))
         
         pygame.display.flip()
         et = time.time()
