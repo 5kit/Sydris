@@ -14,25 +14,25 @@ blocks = [
         [[1,1],
          [1,1]],
             
-        [[0,0,0],
-         [0,1,0],
-         [1,1,1]],
+        [[0,1,0],
+         [1,1,1],
+         [0,0,0]],
 
-        [[0,0,0],
-         [0,0,1],
-         [1,1,1]],
+        [[0,0,1],
+         [1,1,1],
+         [0,0,0]],
 
-        [[0,0,0],
-         [1,0,0],
-         [1,1,1]],
+        [[1,0,0],
+         [1,1,1],
+         [0,0,0]],
             
-        [[0,0,0],
-         [1,1,0],
-         [0,1,1]],
-            
-        [[0,0,0],
+        [[1,1,0],
          [0,1,1],
-         [1,1,0]],
+         [0,0,0]],
+            
+        [[0,1,1],
+         [1,1,0],
+         [0,0,0]]
 ]
 
 n = 7
@@ -100,11 +100,12 @@ class Game():
                     self.active.graceTime -= 1
                 else:
                     build = self.active.get_image()
-                    for cords in build:
+                    for cords in build: 
                         if build[cords] == 1:
                             x = cords % 100
                             y = cords // 100
-                            self.board[y][x] = self.active.code
+                            if y >= 0:
+                                self.board[y][x] = self.active.code
                     self.active = Tetris(10-self.lvl, self.next.pop())
                     self.next.insert(0,random.randint(1,n))
                     self.canSwitch = True
@@ -123,6 +124,7 @@ class Game():
                 self.canSwitch = False
     
     def clearRows(self):
+        global highScore
         clr = 0
         for y in range(20):
             f = True
@@ -130,7 +132,6 @@ class Game():
                 if j == 0:
                     f = False
             if f == True:
-                #if self.board[y] in [[j for _ in range(10)] for j in range(1,8)]:
                 clr += 1
                 self.board.pop(y)
                 self.board.insert(0,[0 for _ in range(10)])
@@ -149,7 +150,7 @@ class Game():
             self.active.speed -= 1
             
         for k in self.board[0]:
-            if k in [l for l in range(1,8)]:
+            if k in [l for l in range(1,n+1)]:
                 self.play = False
                 if self.points > highScore:
                     highScore = self.points
@@ -166,11 +167,20 @@ class Game():
             Fy = key//100
             if fork[key] == 1 and Fy >= 0:
                 if 0 <= Fx < 10 and Fy < 20:
-                    if self.board[Fy][Fx] in [1,2,3,4,5,6,7]:
+                    if self.board[Fy][Fx] in range(1,n+1):
                         return False
                 else:
                     return False
         return True
+
+def drawTet(screen,sx,sy,code, s=16):
+    grid = blocks[code]
+    c = cl[code]
+    sz = len(grid)
+    for x in range(sz):
+        for y in range(sz):
+            if grid[y][x] == 1:
+                pygame.draw.rect(screen, c, pygame.Rect(sx+x*(s+2),sy+y*(s+2),s,s), 0, 3)
     
 SCREEN_HEIGHT = 800
 SCREEN_WIDTH = 600
@@ -188,8 +198,6 @@ rate = 20
 
 font = pygame.font.Font('freesansbold.ttf', 32)
 btn = pygame.Rect(200, 450, 200, 100)
-trmno = [pygame.image.load('src\\0.png'), pygame.image.load('src\\1.png'), pygame.image.load('src\\2.png'), pygame.image.load('src\\3.png'), pygame.image.load('src\\4.png'), pygame.image.load('src\\5.png'), pygame.image.load('src\\6.png'), pygame.image.load('src\\7.png')]
-trmno = [pygame.transform.scale(t,(80,80)) for t in trmno]
 
 running = True
 while running:
@@ -212,24 +220,32 @@ while running:
                 if event.key == pygame.K_UP or event.key == pygame.K_z:
                     game.switch()
                 if event.key == pygame.K_s:
-                    f = True
-                    for Dy in [0,-1,1]:
-                        for Dx in [0,-1,1]:
-                            if game.forecast(Dx,Dy,1) and f:
-                                game.active.rotation = (game.active.rotation+1)%4
-                                game.active.pos[0] += Dx
-                                game.active.pos[0] += Dy
-                                f = False
+                    tst = [(0,0),(-1,0),(-1,1),(0,-2),(-1,-2)] if game.active.code in [1,2] else [(0,0),(1,0),(1,-1),(0,2),(1,2)]
+                    if game.active.code == 2:
+                        tst = [(0,0),(2,0),(-1,0),(2,1),(-1,-2)] if game.active.rotation == 1 else tst
+                        tst = [(0,0),(1,0),(-2,0)(1,-2),(-2,1)] if game.active.rotation == 2 else tst
+                        tst = [(0,0),(2,0),(1,0)(-2,-1),(1,2)] if game.active.rotation == 3 else tst
+                        tst = [(0,0),(-1,0),(2,0),(-1,2),(2,-1)] if game.active.rotation == 0 else tst
+                    for D in tst:
+                        if game.forecast(D[0],D[1],1):
+                            game.active.rotation = (game.active.rotation+1)%4
+                            game.active.pos[0] += D[0]
+                            game.active.pos[1] += D[1]
+                            break
                 if event.key == pygame.K_d:
-                    f = True
-                    for Dy in [0,-1,1]:
-                        for Dx in [0,-1,1]:
-                            if game.forecast(Dx,Dy,-1) and f:
-                                game.active.rotation -= 1
-                                game.active.rotation += 4 if game.active.rotation < 0 else 0
-                                game.active.pos[0] += Dx
-                                game.active.pos[0] += Dy
-                                f = False
+                    tst = [(0,0),(-1,0),(-1,1),(0,-2),(-1,-2)] if game.active.code in [0,3] else [(0,0),(1,0),(1,-1),(0,2),(1,2)]
+                    if game.active.code == 2:
+                        tst = [(0,0),(2,0),(-1,0),(2,1),(-1,-2)] if game.active.rotation == 0 else tst
+                        tst = [(0,0),(1,0),(-2,0)(1,-2),(-2,1)] if game.active.rotation == 3 else tst
+                        tst = [(0,0),(2,0),(1,0)(-2,-1),(1,2)] if game.active.rotation == 2 else tst
+                        tst = [(0,0),(-1,0),(2,0),(-1,2),(2,-1)] if game.active.rotation == 1 else tst
+                    for D in tst:
+                        if game.forecast(D[0],D[1],-1):
+                            game.active.rotation -= 1
+                            game.active.rotation += 4 if game.active.rotation < 0 else 0
+                            game.active.pos[0] += D[0]
+                            game.active.pos[1] += D[1]
+                            break
                 if event.key == pygame.K_q:
                     ps = True
                     while ps:
@@ -255,11 +271,12 @@ while running:
         screen.blit(t2, (170, 30))
         t5 = font.render('level: ' + str(game.lvl), True, (255,255,255))
         screen.blit(t5, (400, 30))
-        screen.blit(trmno[game.store], (420, 110))
-        screen.blit(trmno[game.next[3]], (420, 250))
-        screen.blit(trmno[game.next[2]], (420, 330))
-        screen.blit(trmno[game.next[1]], (420, 410))
-        screen.blit(trmno[game.next[0]], (420, 490))
+
+        drawTet(screen,420,120,game.store)
+        drawTet(screen,420,260,game.next[3])
+        drawTet(screen,420,340,game.next[2])
+        drawTet(screen,420,420,game.next[1])
+        drawTet(screen,420,500,game.next[0])
         
         pygame.display.flip()
         et = time.time()
