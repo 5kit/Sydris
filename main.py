@@ -3,13 +3,13 @@ import random
 import time
 import copy
 
-blocks = [
+Tetromino = [
         [[0]],
         
-        [[0,1,0,0],
-         [0,1,0,0],
-         [0,1,0,0],
-         [0,1,0,0]],
+        [[0,0,0,0],
+         [1,1,1,1],
+         [0,0,0,0],
+         [0,0,0,0]],
         
         [[1,1],
          [1,1]],
@@ -38,13 +38,24 @@ blocks = [
 n = 7
 cl = [(40,40,40), (30, 255, 255), (255, 255, 30), (80, 30, 180), (255, 135, 30), (30, 150, 255), (255, 30, 30), (30, 255, 135)]
 
+def createTetromino(map, c):
+    Tetromino.append(map)
+    cl.append(c)
+    n += 1
+    
+def removeTetromino(i):
+    if 7 < i < len(Tetromino):
+        Tetromino.pop(i)
+        cl.pop(i)
+        n -= 1
+
 class Tetris():        
     def __init__(self, sp=10, code=random.randint(1,n)):
         self.speed = max(sp,0)
         self.code = code
         self.pos = [4,-1]
         self.rotation = 0
-        self.graceTime = 1
+        self.graceTime = 4
     
     def get_image(self):
         while self.rotation < 0:
@@ -52,7 +63,7 @@ class Tetris():
         self.rotation %= 4
         
         positions = {}
-        bk = blocks[self.code]
+        bk = Tetromino[self.code]
         for _ in range(self.rotation):
             bk = [[i[j] for i in bk[::-1]] for j in range(len(bk))]
         for dy in range(len(bk)):
@@ -174,7 +185,7 @@ class Game():
         return True
 
 def drawTet(screen,sx,sy,code, s=16):
-    grid = blocks[code]
+    grid = Tetromino[code]
     c = cl[code]
     sz = len(grid)
     for x in range(sz):
@@ -192,6 +203,7 @@ pygame.display.set_caption("Sydris")
 game = Game()
 highScore = 0
 game.play = False
+editor = False
 st, et = 0, 0
 tk = 0
 rate = 20
@@ -220,31 +232,31 @@ while running:
                 if event.key == pygame.K_UP or event.key == pygame.K_z:
                     game.switch()
                 if event.key == pygame.K_s:
-                    tst = [(0,0),(-1,0),(-1,1),(0,-2),(-1,-2)] if game.active.code in [1,2] else [(0,0),(1,0),(1,-1),(0,2),(1,2)]
-                    if game.active.code == 2:
+                    tst = [(0,0),(-1,0),(-1,1),(0,-2),(-1,-2)] if game.active.code in [3,2] else [(0,0),(1,0),(1,-1),(0,2),(1,2)]
+                    if game.active.code == 1:
+                        tst = [(0,0),(-2,0),(1,0),(-2,-1),(1,2)] if game.active.rotation == 3 else tst
                         tst = [(0,0),(2,0),(-1,0),(2,1),(-1,-2)] if game.active.rotation == 1 else tst
-                        tst = [(0,0),(1,0),(-2,0)(1,-2),(-2,1)] if game.active.rotation == 2 else tst
-                        tst = [(0,0),(2,0),(1,0)(-2,-1),(1,2)] if game.active.rotation == 3 else tst
                         tst = [(0,0),(-1,0),(2,0),(-1,2),(2,-1)] if game.active.rotation == 0 else tst
+                        tst = [(0,0),(1,0),(-2,0),(1,-2),(-2,1)] if game.active.rotation == 2 else tst
                     for D in tst:
-                        if game.forecast(D[0],D[1],1):
-                            game.active.rotation = (game.active.rotation+1)%4
-                            game.active.pos[0] += D[0]
-                            game.active.pos[1] += D[1]
-                            break
-                if event.key == pygame.K_d:
-                    tst = [(0,0),(-1,0),(-1,1),(0,-2),(-1,-2)] if game.active.code in [0,3] else [(0,0),(1,0),(1,-1),(0,2),(1,2)]
-                    if game.active.code == 2:
-                        tst = [(0,0),(2,0),(-1,0),(2,1),(-1,-2)] if game.active.rotation == 0 else tst
-                        tst = [(0,0),(1,0),(-2,0)(1,-2),(-2,1)] if game.active.rotation == 3 else tst
-                        tst = [(0,0),(2,0),(1,0)(-2,-1),(1,2)] if game.active.rotation == 2 else tst
-                        tst = [(0,0),(-1,0),(2,0),(-1,2),(2,-1)] if game.active.rotation == 1 else tst
-                    for D in tst:
-                        if game.forecast(D[0],D[1],-1):
+                        if game.forecast(D[0],-D[1],-1):
                             game.active.rotation -= 1
                             game.active.rotation += 4 if game.active.rotation < 0 else 0
                             game.active.pos[0] += D[0]
-                            game.active.pos[1] += D[1]
+                            game.active.pos[1] -= D[1]
+                            break
+                if event.key == pygame.K_d:
+                    tst = [(0,0),(-1,0),(-1,1),(0,-2),(-1,-2)] if game.active.code in [3,0] else [(0,0),(1,0),(1,-1),(0,2),(1,2)]
+                    if game.active.code == 1:
+                        tst = [(0,0),(-2,0),(1,0),(-2,-1),(1,2)] if game.active.rotation == 0 else tst
+                        tst = [(0,0),(2,0),(-1,0,),(2,1),(-1,-2)] if game.active.rotation == 2 else tst
+                        tst = [(0,0),(-1,0),(2,0),(-1,2),(2,-1)] if game.active.rotation == 1 else tst
+                        tst = [(0,0),(1,0),(-2,0),(1,-2),(-2,1)] if game.active.rotation == 3 else tst
+                    for D in tst:
+                        if game.forecast(D[0],-D[1],1):
+                            game.active.rotation = (game.active.rotation+1)%4
+                            game.active.pos[0] += D[0]
+                            game.active.pos[1] -= D[1]
                             break
                 if event.key == pygame.K_q:
                     ps = True
@@ -283,7 +295,23 @@ while running:
         dt = et-st
         tk += 1
         time.sleep(max(1/rate - 1/rate*dt,0))
+    
+    elif editor:
+        screen.fill((70,70,70))
         
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if btn.collidepoint(event.pos):
+                    game = Game()
+        
+        if btn.collidepoint(pygame.mouse.get_pos()):
+            pygame.draw.rect(screen, (80,80,80), btn, 0,15)
+        else:
+            pygame.draw.rect(screen, (150,50,50), btn, 0,15)
+        t0 = font.render('Play', True, (255,255,255))
+        screen.blit(t0, (270, 485))
     else:
         screen.fill((70,70,70))
             
@@ -304,7 +332,7 @@ while running:
         t0 = font.render('Play', True, (255,255,255))
         screen.blit(t0, (270, 485))
         
-        pygame.draw.rect(screen, (100,100,100), pygame.Rect(180, 300, 250, 100), 0,15)
+        pygame.draw.rect(screen, (100,100,100), pygame.Rect(180, 300, 300, 100), 0,15)
         
         t0 = font.render('highScore: ' + str(highScore), False, (255,255,255))
         screen.blit(t0, (210, 315))
